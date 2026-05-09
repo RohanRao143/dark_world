@@ -35,7 +35,7 @@ class LevelSelectScreen extends ConsumerWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const GameWrapper(),
+                        builder: (_) => GameWrapper(level: level),
                       ),
                     );
                   }

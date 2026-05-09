@@ -1,0 +1,4 @@
+enum WorldTheme {
+  industrial,
+  forest,
+}

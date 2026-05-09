@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import 'my_game.dart';
+import '../world/world_theme.dart';
 
 class Background extends Component with HasGameReference<MyGame> {
   bool isMoving = false;
@@ -39,6 +40,11 @@ class Background extends Component with HasGameReference<MyGame> {
   final List<_Star> stars = [];
 
   final List<double> poles = [];
+  final WorldTheme theme;
+
+  Background({
+    required this.theme,
+  });
 
   // =========================
   // LOAD
@@ -256,29 +262,107 @@ class Background extends Component with HasGameReference<MyGame> {
 
     _drawMountains(canvas, horizonY);
 
-    _drawLayer(canvas, farBuildings, horizonY);
-    _drawLayer(canvas, midBuildings, horizonY);
-    _drawLayer(canvas, nearBuildings, horizonY);
+    // _drawLayer(canvas, farBuildings, horizonY);
+    // _drawLayer(canvas, midBuildings, horizonY);
+    // _drawLayer(canvas, nearBuildings, horizonY);
+  
+    // TODO:: Add more worlds ->> use switch
+
+    if (theme == WorldTheme.industrial) {
+      _drawLayer(canvas, farBuildings, horizonY);
+      _drawLayer(canvas, midBuildings, horizonY);
+      _drawLayer(canvas, nearBuildings, horizonY);
+    } else {
+      _drawForest(canvas, horizonY);
+    }
+
 
     _drawFog(canvas, size);
     _drawForeground(canvas, horizonY);
     _drawVignette(canvas);
   }
 
+
+  // =========================
+  // FOREST
+  // =========================
+
+
+  void _drawForest(Canvas canvas, double horizonY) {
+    final paint = Paint()
+      ..color = Colors.black.withOpacity(0.85);
+
+    for (double x = 0; x < game.size.x * 1.5; x += 60) {
+      final trunkH = 120 + (x % 80);
+
+      canvas.drawRect(
+        Rect.fromLTWH(
+          x,
+          horizonY - trunkH,
+          14,
+          trunkH,
+        ),
+        paint,
+      );
+
+      canvas.drawCircle(
+        Offset(x + 7, horizonY - trunkH),
+        30,
+        paint,
+      );
+    }
+  }
+
   // =========================
   // SKY
   // =========================
 
+  // void _drawSky(Canvas canvas, Vector2 size) {
+  //   final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+
+  //   final grad = LinearGradient(
+  //     colors: [Colors.black, Colors.grey.shade900],
+  //     begin: Alignment.topCenter,
+  //     end: Alignment.bottomCenter,
+  //   );
+
+  //   canvas.drawRect(rect, Paint()..shader = grad.createShader(rect));
+  // }
+
   void _drawSky(Canvas canvas, Vector2 size) {
     final rect = Rect.fromLTWH(0, 0, size.x, size.y);
 
+
+    // TODO:: Add more worlds ->> different colored theme
+
+    List<Color> colors;
+
+    switch (theme) {
+      case WorldTheme.industrial:
+        colors = [
+          Colors.black,
+          Colors.grey.shade900,
+        ];
+        break;
+
+      case WorldTheme.forest:
+        colors = [
+          const Color(0xFF0B1B12),
+          const Color(0xFF1F3A2E),
+        ];
+        break;
+    }
+
     final grad = LinearGradient(
-      colors: [Colors.black, Colors.grey.shade900],
+      colors: colors,
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     );
 
-    canvas.drawRect(rect, Paint()..shader = grad.createShader(rect));
+    canvas.drawRect(
+      rect,
+      Paint()..shader = grad.createShader(rect),
+    );
   }
 
   // =========================
@@ -337,6 +421,31 @@ class Background extends Component with HasGameReference<MyGame> {
   // MOON
   // =========================
 
+  // void _drawMoon(Canvas canvas) {
+  //   final w = game.size.x * 2;
+
+  //   double x = (650 - moonOffset) % w;
+  //   if (x < 0) x += w;
+
+  //   final c = Offset(x, 100);
+
+  //   canvas.drawCircle(
+  //     c,
+  //     60,
+  //     Paint()
+  //       ..color = Colors.white.withOpacity(0.08)
+  //       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40),
+  //   );
+
+  //   canvas.drawCircle(c, 22, Paint()..color = Colors.grey.shade200);
+
+  //   canvas.drawCircle(
+  //     Offset(c.dx + 6, c.dy),
+  //     22,
+  //     Paint()..color = Colors.black.withOpacity(0.2),
+  //   );
+  // }
+
   void _drawMoon(Canvas canvas) {
     final w = game.size.x * 2;
 
@@ -345,20 +454,33 @@ class Background extends Component with HasGameReference<MyGame> {
 
     final c = Offset(x, 100);
 
+    // TODO:: Add more worlds - check if needed
+
+    Color moonColor;
+
+    switch (theme) {
+      case WorldTheme.industrial:
+        moonColor = Colors.grey.shade200;
+        break;
+
+      case WorldTheme.forest:
+        moonColor = Colors.green.shade100;
+        break;
+    }
+
     canvas.drawCircle(
       c,
       60,
       Paint()
-        ..color = Colors.white.withOpacity(0.08)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40),
+        ..color = moonColor.withOpacity(0.08)
+        ..maskFilter =
+            const MaskFilter.blur(BlurStyle.normal, 40),
     );
 
-    canvas.drawCircle(c, 22, Paint()..color = Colors.grey.shade200);
-
     canvas.drawCircle(
-      Offset(c.dx + 6, c.dy),
+      c,
       22,
-      Paint()..color = Colors.black.withOpacity(0.2),
+      Paint()..color = moonColor,
     );
   }
 

@@ -6,6 +6,8 @@ import '../obstacles/barrel_prop.dart';
 import '../obstacles/crate_prop.dart';
 import '../obstacles/obstacle.dart';
 import '../obstacles/electric_pole_prop.dart';
+import '../world/world_theme.dart';
+
 
 class Ground extends Component with HasGameReference<MyGame> {
   bool isMoving = false;
@@ -15,6 +17,11 @@ class Ground extends Component with HasGameReference<MyGame> {
   final List<GroundProp> props = [];
   final List<_GrassBlade> grass = [];
   final List<_GrassBlade> foregroundGrass = [];
+  final WorldTheme theme;
+
+  Ground({
+    required this.theme,
+  });
 
   @override
   Future<void> onLoad() async {
@@ -71,29 +78,42 @@ class Ground extends Component with HasGameReference<MyGame> {
     GroundProp? lastProp;
 
     while (x < game.size.x * 1.5) {
-      final type = rand.nextInt(3);
-
       late GroundProp prop;
 
-      if (type == 0) {
-        prop = BarrelProp(
-          x: x,
-          width: 38 + rand.nextDouble() * 14,
-          height: 46 + rand.nextDouble() * 14,
-        );
-      } else if (type == 1) {
+      // TODO:: Add more worlds ->> use switch
+
+
+      if (theme == WorldTheme.industrial) {
+        final type = rand.nextInt(3);
+
+        if (type == 0) {
+          prop = BarrelProp(
+            x: x,
+            width: 38 + rand.nextDouble() * 14,
+            height: 46 + rand.nextDouble() * 14,
+          );
+        } else if (type == 1) {
+          prop = CrateProp(
+            x: x,
+            size: 42 + rand.nextDouble() * 16,
+          );
+        } else {
+          prop = ElectricPoleProp(
+            x: x,
+            height: 140 + rand.nextDouble() * 60,
+          );
+        }
+      } else {
+        // FOREST WORLD DUMMY OBJECTS
+
         prop = CrateProp(
           x: x,
-          size: 42 + rand.nextDouble() * 16,
-        );
-      } else {
-        prop = ElectricPoleProp(
-          x: x,
-          height: 140 + rand.nextDouble() * 60,
+          size: 40,
         );
       }
 
       props.add(prop);
+
       lastProp = prop;
 
       x += 180 + rand.nextDouble() * 260;
@@ -116,12 +136,26 @@ class Ground extends Component with HasGameReference<MyGame> {
     return screenHeight - groundHeight;
   }
 
+  // TODO:: Add more worlds ->> different world theme
+
+  Color _groundColor() {
+    switch (theme) {
+      case WorldTheme.industrial:
+        return Colors.grey.shade700;
+
+      case WorldTheme.forest:
+        return const Color(0xFF1E2D24);
+    }
+  }
+
   @override
   void render(Canvas canvas) {
     final screenHeight = game.size.y;
     final groundHeight = screenHeight * 0.25;
 
     final paint = Paint()..color = Colors.grey.shade600;
+
+    // final paint = Paint()..color = _groundColor()
 
 
     // canvas.drawRect(
@@ -152,7 +186,8 @@ class Ground extends Component with HasGameReference<MyGame> {
 
     canvas.drawPath(
       path,
-      Paint()..color = Colors.grey.shade600,
+      Paint()..color = _groundColor(),
+      // Paint()..color = Colors.grey.shade600,
     );
     
     

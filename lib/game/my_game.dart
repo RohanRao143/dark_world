@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/obstacle_manager.dart';
 import '../obstacles/obstacle.dart';
 import '../state/game_state_provider.dart';
+import '../world/level_data.dart';
+import '../world/world_theme.dart';
+
 
 import 'background.dart';
 import 'fog.dart';
@@ -24,19 +27,31 @@ class MyGame extends FlameGame with TapCallbacks {
   bool isGameOver = false;
 
   bool isHolding = false;
+  final int level;
 
-  MyGame({required this.ref});
+  MyGame({
+    required this.ref,
+    required this.level,
+  });
 
   @override
   Future<void> onLoad() async {
+
+    final levelData = levels.firstWhere(
+      (e) => e.level == level,
+    );
+
+    final theme = levelData.theme;
+
+
     final screenHeight = size.y;
     final groundHeight = screenHeight * 0.25;
 
     camera.viewfinder.visibleGameSize =
         Vector2(800, 400);
 
-    background = Background();
-    ground = Ground();
+    background = Background(theme: theme);
+    ground = Ground(theme: theme);
     fog = Fog();
 
     player = Player()
@@ -57,6 +72,7 @@ class MyGame extends FlameGame with TapCallbacks {
     obstacleManager = ObstacleManager();
 
     add(obstacleManager);
+
   }
 
   @override
