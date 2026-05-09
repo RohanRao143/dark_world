@@ -5,6 +5,14 @@ flutter pub get
 flutter run
 
 
+ git config user.name "RohanRao143"
+
+git config user.email "krishna.rohan.krishna@gmail.com"
+
+git config core.sshCommand "ssh -i ./local -F /dev/null"
+
+
+
 Tasks
 
       Destroy all the world once objects past the left
