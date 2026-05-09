@@ -1,0 +1,1159 @@
+Barrel_prop
+
+
+  @override
+  void render(Canvas canvas, double groundY) {
+    final rect = Rect.fromCenter(
+      center: Offset(x, groundY - height / 2),
+      width: width,
+      height: height,
+    );
+
+    // MAIN BODY
+    final bodyPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.grey.shade900,
+          Colors.grey.shade700,
+          Colors.grey.shade900,
+        ],
+      ).createShader(rect);
+
+    final body = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(width * 0.35),
+    );
+
+    canvas.drawRRect(body, bodyPaint);
+
+    // WOOD PLANKS
+    final plankPaint = Paint()
+      ..color = Colors.grey.shade500.withOpacity(0.25)
+      ..strokeWidth = 1;
+
+    const plankCount = 7;
+
+    for (int i = 1; i < plankCount; i++) {
+      final px = rect.left + (rect.width / plankCount) * i;
+
+      canvas.drawLine(
+        Offset(px, rect.top + 2),
+        Offset(px, rect.bottom - 2),
+        plankPaint,
+      );
+    }
+
+    // METAL BANDS
+    final bandPaint = Paint()
+      ..color = Colors.black.withOpacity(0.9)
+      ..strokeWidth = 3;
+
+    canvas.drawLine(
+      Offset(rect.left + 2, rect.top + height * 0.25),
+      Offset(rect.right - 2, rect.top + height * 0.25),
+      bandPaint,
+    );
+
+    canvas.drawLine(
+      Offset(rect.left + 2, rect.bottom - height * 0.25),
+      Offset(rect.right - 2, rect.bottom - height * 0.25),
+      bandPaint,
+    );
+
+    // EDGE SHADOW
+    canvas.drawRRect(
+      body,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black.withOpacity(0.5),
+    );
+
+    // HIGHLIGHT
+    canvas.drawOval(
+      Rect.fromLTWH(
+        rect.left + width * 0.18,
+        rect.top + 4,
+        width * 0.12,
+        height - 8,
+      ),
+      Paint()..color = Colors.white.withOpacity(0.05),
+    );
+
+    // GROUND SHADOW
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x, groundY + 2),
+        width: width * 1.2,
+        height: 5,
+      ),
+      Paint()..color = Colors.black.withOpacity(0.45),
+    );
+  }
+
+
+// =========================
+// Player
+// =========================
+
+
+import 'dart:ui';
+import 'dart:math';
+import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
+import 'my_game.dart';
+
+class Player extends PositionComponent with HasGameReference<MyGame> {
+  Player() {
+    size = Vector2(40, 70);
+  }
+
+  bool isRunning = false;
+  bool isJumping = false;
+  bool isSliding = false;
+  bool isBreaking = false;
+
+  double animationTime = 0;
+  double jumpTime = 0;
+  double slideTimer = 0;
+  double breakTimer = 0;
+
+  double jumpDuration = 0.6;
+  double slideDuration = 0.6;
+  double breakDuration = 0.4;
+
+  late double groundY;
+
+  bool eyesOpen = true;
+  double blinkTimer = 0;
+
+  double slideOffset = 0;
+
+  double slideVelocity = 0;
+
+  @override
+  Future<void> onLoad() async {
+    final groundHeight = game.size.y * 0.25;
+    position = Vector2(150, game.size.y - groundHeight - size.y);
+  }
+
+  void setGround(double y) {
+    groundY = y;
+    position.y = y;
+  }
+
+  void jump() {
+    if (!isJumping && !isSliding) {
+      isJumping = true;
+      jumpTime = 0;
+    }
+  }
+
+  void slide() {
+    if (!isJumping && !isSliding) {
+      isSliding = true;
+      slideTimer = 0;
+      // slideVelocity = 180; // 🔥 forward burst
+    }
+  }
+
+  void collide() {
+    if (!isBreaking) {
+      isBreaking = true;
+      breakTimer = 0;
+    }
+  }
+
+  @override
+  Rect toRect() {
+    if (isSliding) {
+      return Rect.fromLTWH(
+        position.x,
+        position.y + 40,
+        size.x,
+        size.y - 40,
+      );
+    }
+    return super.toRect();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (isRunning) {
+      animationTime += dt * 4;
+    }
+
+    // ----- JUMP -----
+    if (isJumping) {
+      jumpTime += dt;
+
+      final t = (jumpTime / jumpDuration).clamp(0.0, 1.0);
+      final dy = -4 * 90 * t * (1 - t);
+
+      position.y = groundY + dy;
+
+      if (t >= 1.0) {
+        isJumping = false;
+        position.y = groundY;
+      }
+    }
+
+    // ----- SLIDE -----
+    if (isSliding) {
+      slideTimer += dt;
+      if (slideTimer >= slideDuration) {
+        isSliding = false;
+      }
+    }
+
+    // smooth vertical offset for slide
+    if (isSliding) {
+      slideOffset = lerpDouble(slideOffset, 28, 0.25)!;
+    } else {
+      slideOffset = lerpDouble(slideOffset, 0, 0.2)!;
+    }
+
+    if (isSliding) {
+      position.x += slideVelocity * dt;
+      slideVelocity *= 0.92; // friction
+    }
+
+    if (!isJumping) {
+      position.y = groundY;
+    }
+
+    // ----- BLINK -----
+    blinkTimer += dt;
+    if (blinkTimer > 3) {
+      eyesOpen = false;
+      if (blinkTimer > 3.2) {
+        eyesOpen = true;
+        blinkTimer = 0;
+      }
+    }
+
+    // ----- BREAK -----
+    if (isBreaking) {
+      breakTimer += dt;
+      if (breakTimer >= breakDuration) {
+        isBreaking = false;
+      }
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final centerX = size.x / 2;
+
+    final bodyPaint = Paint()..color = Colors.black;
+
+    // final front = Paint()
+    //   ..color = Colors.black
+    //   ..strokeWidth = 3.5
+    //   ..strokeCap = StrokeCap.round;
+
+    // final back = Paint()
+    //   ..color = Colors.black.withOpacity(0.5)
+    //   ..strokeWidth = 3.5
+    //   ..strokeCap = StrokeCap.round;
+
+    final limbPaint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    final handPaint = Paint()..color = Colors.black;
+
+    final swing = isRunning && !isJumping && !isSliding
+        ? sin(animationTime * 2) * 12
+        : 0.0;
+
+    final opposite = -swing;
+
+    final jumpT = (jumpTime / jumpDuration).clamp(0.0, 1.0);
+    final jumpCurve = sin(pi * jumpT);
+
+    final headY = 14.0;
+    final shoulderY = 26.0;
+    final hipY = 52.0;
+    final armY = shoulderY + 4;
+
+    // 🔥 dynamic lean
+    double lean = 0.02;
+    if (isRunning) lean = 0.12;
+    if (isJumping) lean = 0.2;
+    if (isSliding) lean = -0.5;
+
+    // =========================
+    // 🧠 HEAD
+    // =========================
+    canvas.save();
+    canvas.translate(centerX, headY);
+    canvas.rotate(lean);
+
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: 24, height: 24),
+      bodyPaint,
+    );
+
+    if (eyesOpen) {
+      canvas.drawCircle(Offset(4, -2), 2, Paint()..color = Colors.white);
+    } else {
+      canvas.drawLine(
+        Offset(3, -2),
+        Offset(6, -2),
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 1.5,
+      );
+    }
+
+    final wave = sin(animationTime * 2) * 2;
+
+    // final hair = Path()
+    //   ..moveTo(-10, -8)
+    //   ..quadraticBezierTo(-2, -16 + wave, 8, -8)
+    //   ..lineTo(8, -3)
+    //   ..quadraticBezierTo(-2, -10 + wave, -10, -3)
+    //   ..close();
+
+
+    final hair = Path();
+
+    hair.moveTo(-11, -2);
+
+    hair.quadraticBezierTo(
+      -14,
+      -16,
+      -2,
+      -18,
+    );
+
+    hair.quadraticBezierTo(
+      10,
+      -20 + wave,
+      14,
+      -6,
+    );
+
+    hair.quadraticBezierTo(
+      8,
+      -10,
+      4,
+      -2,
+    );
+
+    hair.lineTo(-11, -2);
+
+    canvas.drawPath(hair, bodyPaint);
+    canvas.restore();
+
+    // =========================
+    // 🧍 TORSO
+    // =========================
+    canvas.save();
+    canvas.translate(centerX, 0);
+    double bodyYOffset = 0;
+
+// move head as well while sliding.
+
+    if (isSliding) {
+      bodyYOffset = 18; // how much body drops
+    }
+
+    double squash = 1.0;
+
+    if (isSliding) {
+      squash = 0.8;
+    }
+
+    canvas.scale(1.0, squash);
+
+    canvas.translate(0, bodyYOffset);
+    canvas.rotate(lean);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(0, (shoulderY + hipY) / 2),
+          width: 16,
+          height: hipY - shoulderY,
+        ),
+        Radius.circular(5),
+      ),
+      bodyPaint,
+    );
+
+    // =========================
+    // 🦵 LEGS + 💪 ARMS (NEW SYSTEM)
+    // =========================
+
+    Offset backKnee, backFoot, frontKnee, frontFoot;
+    Offset backElbow, backHand, frontElbow, frontHand;
+
+    if (isJumping) {
+      final legLift = jumpCurve * 18;
+      final armLift = jumpCurve * 12;
+
+      backKnee = Offset(-6, hipY + 16 - legLift);
+      backFoot = Offset(-4, size.y - legLift);
+
+      frontKnee = Offset(6, hipY + 16 - legLift);
+      frontFoot = Offset(4, size.y - legLift);
+
+      backElbow = Offset(-6, armY + 10 - armLift);
+      backHand = Offset(-10, armY + 20 - armLift);
+
+      frontElbow = Offset(6, armY + 10 - armLift);
+      frontHand = Offset(10, armY + 20 - armLift);
+
+    } else if (isSliding) {
+
+      backKnee = Offset(-12, hipY + 8);
+      backFoot = Offset(-20, size.y);
+
+      frontKnee = Offset(12, hipY + 8);
+      frontFoot = Offset(20, size.y);
+
+      backElbow = Offset(-12, armY + 5);
+      backHand = Offset(-18, armY + 10);
+
+      frontElbow = Offset(0, armY + 5);
+      frontHand = Offset(6, armY + 8);
+
+    } else {
+      // running
+      backKnee = Offset(opposite * 0.6, hipY + 16);
+      backFoot = Offset(opposite * 0.8, size.y);
+
+      frontKnee = Offset(swing * 0.6, hipY + 16);
+      frontFoot = Offset(swing * 0.8, size.y);
+
+      backElbow = Offset(opposite * 0.6, armY + 10);
+      backHand = Offset(opposite * 1.2, armY + 20);
+
+      frontElbow = Offset(swing * 0.6, armY + 10);
+      frontHand = Offset(swing * 1.2, armY + 20);
+    }
+
+    // DRAW LEGS
+    canvas.drawLine(Offset(0, hipY), backKnee, limbPaint);
+    canvas.drawLine(backKnee, backFoot, limbPaint);
+
+    canvas.drawLine(Offset(0, hipY), frontKnee, limbPaint);
+    canvas.drawLine(frontKnee, frontFoot, limbPaint);
+
+    // DRAW ARMS
+    canvas.drawLine(Offset(0, shoulderY), backElbow, limbPaint);
+    canvas.drawLine(backElbow, backHand, limbPaint);
+    canvas.drawCircle(backHand, 3, handPaint);
+
+    canvas.drawLine(Offset(0, shoulderY), frontElbow, limbPaint);
+    canvas.drawLine(frontElbow, frontHand, limbPaint);
+    canvas.drawCircle(frontHand, 3, handPaint);
+
+    canvas.restore();
+
+    // =========================
+    // 🌑 SHADOW
+    // =========================
+    final shadowScale = isJumping
+        ? 1 - sin(pi * jumpT) * 0.5
+        : 1.0;
+
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(centerX, size.y + 2),
+        width: 20 * shadowScale,
+        height: 6,
+      ),
+      Paint()..color = Colors.black,
+    );
+
+    // BREAK EFFECT
+    if (isBreaking) {
+      final glowPaint = Paint()
+        ..color = Colors.white
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        30,
+        glowPaint,
+      );
+    }
+  }
+}
+
+
+// =========================
+// Game wrapper code
+// =========================
+
+import 'package:flame/game.dart';
+import 'package:flutter/material.dart';
+import '../game/my_game.dart';
+import '../logic/game_controls.dart';
+
+class GameWrapper extends StatelessWidget {
+  const GameWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final game = MyGame();
+
+    return Scaffold(
+      body: GameWidget(
+        game: game,
+        overlayBuilderMap: {
+          'Controls': (context, game) => GameControls(game as MyGame),
+        },
+        initialActiveOverlays: const ['Controls'],
+      ),
+    );
+  }
+}
+
+
+// =========================
+//  my_game
+// =========================
+
+
+// import 'package:flame/components.dart';
+// import 'package:flame/game.dart';
+// import 'package:flame/events.dart';
+// import 'package:flutter/material.dart';
+
+// import 'player.dart';
+// import 'ground.dart';
+// import 'background.dart';
+// import 'silhouette_objects.dart';
+// import 'ambient_particles.dart';
+// import 'fog.dart';
+
+// class MyGame extends FlameGame with TapCallbacks {
+//   late Player player;
+//   late Background background;
+//   late Ground ground;
+//   late Silhouette silhouette;
+//   late AmbientParticles ambientParticles;
+//   late Fog fog;
+
+//   bool isHolding = false;
+
+//   // For double-tap detection
+//   double lastTapTime = 0;
+//   Offset? lastTapPosition;
+
+
+//   @override
+//   Future<void> onLoad() async {
+//     final screenHeight = size.y;
+//     final groundHeight = screenHeight * 0.25;
+    
+//     camera.viewfinder.visibleGameSize = Vector2(800, 400);
+
+//     background = Background();
+//     ground = Ground();
+//     // player = Player();
+
+//     player = Player()
+//       ..position = Vector2(200, screenHeight - groundHeight - 50);
+
+//     // silhouette = Silhouette(x: x, height: height, width: width);
+//     ambientParticles = AmbientParticles();
+//     fog = Fog();
+
+//     add(background);
+//     add(ground);
+
+//     add(player);
+
+//     // add(ambientParticles);
+//     add(fog);
+//   }
+
+//   @override
+//   void update(double dt) {
+//     super.update(dt);
+
+//     background.isMoving = isHolding;
+//     ground.isMoving = isHolding;
+//     player.isRunning = isHolding;
+//   }
+
+//   @override
+//   void onTapDown(TapDownEvent event) {
+//     isHolding = true;
+
+//     final tapX = event.canvasPosition.x;
+
+//     // Right half of screen → jump
+//     if (tapX > size.x / 2) {
+//       player.jump();
+//     }
+
+//     // final Vector2 tapPosition = event.canvasPosition;
+
+//     // final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
+//     // // Check for double-tap
+//     // if (lastTapTime != 0 &&
+//     //     (currentTime - lastTapTime) < 0.3 &&
+//     //     lastTapPosition != null) {
+//     //   final double distance = (tapPosition - lastTapPosition!).length;
+//     //   if (distance < 50) {
+//     //     // Double-tap detected
+//     //     if (tapPosition.x > size.x / 2) { // <-- use .x instead of .dx
+//     //       player.jump();
+//     //     }
+//     //   }
+//     // }
+//     // // Update last tap
+//     // lastTapTime = currentTime;
+//     // lastTapPosition = tapPosition;
+//   }
+
+//   @override
+//   void onTapUp(TapUpEvent event) {
+//     isHolding = false;
+//   }
+
+//   @override
+//   void onTapCancel(TapCancelEvent event) {
+//     isHolding = false;
+//   }
+// }
+
+
+
+
+
+import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flame/events.dart';
+import 'package:flutter/material.dart';
+
+import '../logic/obstacle_manager.dart';
+import '../obstacles/obstacle.dart';
+
+import 'player.dart';
+import 'ground.dart';
+import 'background.dart';
+import 'fog.dart';
+
+class MyGame extends FlameGame with TapCallbacks {
+  late Player player;
+  late Background background;
+  late Ground ground;
+  late Fog fog;
+  late ObstacleManager obstacleManager;
+  bool isGameOver = false;
+  bool isHolding = false;
+
+  @override
+  Future<void> onLoad() async {
+    final screenHeight = size.y;
+    final groundHeight = screenHeight * 0.25;
+
+    camera.viewfinder.visibleGameSize = Vector2(800, 400);
+
+    background = Background();
+    ground = Ground();
+    fog = Fog();
+
+    player = Player()
+      ..position = Vector2(
+        200,
+        screenHeight - groundHeight - 60,
+      );
+
+    add(background);
+    add(ground);
+    add(player);
+    add(fog);
+
+    // AFTER add (important)
+    player.setGround(
+      screenHeight - groundHeight - 60,
+    );
+
+
+    obstacleManager = ObstacleManager();
+    add(obstacleManager);
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (isGameOver) return;
+    
+    background.isMoving = isHolding;
+    ground.isMoving = isHolding;
+    player.isRunning = isHolding;
+
+    // 🔥 Collision check
+    for (final component in children.whereType<Obstacle>()) {
+      if (component.collidesWith(player)) {
+        // component.onPlayerCollision(player);
+
+          if (player.isBreaking) {
+            component.removeFromParent(); // 🔥 destroy obstacle
+          } else {
+            component.onPlayerCollision(player);
+            return;
+          }
+
+        return; // 🔥 stop loop immediately
+      }
+    }
+
+  }
+
+
+  void gameOver() {
+    if (isGameOver) return; // prevent multiple calls
+
+    isGameOver = true;
+    isHolding = false;
+
+    player.isRunning = false;
+
+    // Optional: freeze world
+    pauseEngine();
+  }
+
+  
+  @override
+  void onTapDown(TapDownEvent event) {
+    isHolding = true;
+
+    // final tapX = event.canvasPosition.x;
+
+    // // 👉 Right side = jump
+    // if (tapX > size.x / 2) {
+    //   player.jump();
+    // } else {
+    //   player.slide(); // 👈 LEFT SIDE = SLIDE
+    // }
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    isHolding = false;
+  }
+
+  @override
+  void onTapCancel(TapCancelEvent event) {
+    isHolding = false;
+  }
+}
+
+// =========================
+// Game controls
+// =========================
+
+
+import 'package:flutter/material.dart';
+import '../game/my_game.dart';
+
+class GameControls extends StatelessWidget {
+  final MyGame game;
+
+  const GameControls(this.game, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 20,
+      right: 20,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildButton("JUMP", () => game.player.jump()),
+          const SizedBox(height: 10),
+          _buildButton("SLIDE", () => game.player.slide()),
+          const SizedBox(height: 10),
+          _buildButton("BREAK", () => game.player.collide()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildButton(String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTapDown: (_) => game.isHolding = true,
+      onTapUp: (_) => game.isHolding = false,
+      onTapCancel: () => game.isHolding = false,
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2), // 🔥 transparent
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.4)),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================
+// Background code
+//==============================
+
+
+import 'dart:math';
+
+import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
+import 'my_game.dart';
+
+class Background extends Component with HasGameReference<MyGame> {
+  bool isMoving = false;
+  final Random _rand = Random();
+
+  final List<_Building> farBuildings = [];
+  final List<_Building> midBuildings = [];
+  final List<_Building> nearBuildings = [];
+
+  @override
+  Future<void> onLoad() async {
+    _generateBuildings(farBuildings, 60, 120, Colors.grey.shade700, 0.3);
+    _generateBuildings(midBuildings, 100, 160, Colors.grey.shade800, 0.6);
+    _generateBuildings(nearBuildings, 140, 200, Colors.grey.shade900, 1.0);
+    _generateMountains();
+    _generateStars();
+  }
+
+  List<Offset> _generateWindows(double buildingWidth, double buildingHeight) {
+    final List<Offset> windows = [];
+    final rand = Random();
+
+    // Fewer windows per building, 2–5
+    int windowCount = 2 + rand.nextInt(4);
+
+    for (int i = 0; i < windowCount; i++) {
+      // random position inside the building
+      double x = rand.nextDouble() * (buildingWidth - 6); // slightly bigger width
+      double y = rand.nextDouble() * (buildingHeight - 12); // slightly bigger height
+
+      windows.add(Offset(x, y));
+    }
+
+    return windows;
+  }
+
+  final List<_Star> stars = [];
+
+  void _generateStars() {
+    final rand = Random();
+
+    final screenWidth = game.size.x;
+    final screenHeight = game.size.y;
+
+    for (int i = 0; i < 20; i++) {
+      stars.add(_Star(
+        Offset(
+          rand.nextDouble() * screenWidth,           // full width
+          rand.nextDouble() * (screenHeight * 0.75), // top 75% for sky
+        ),
+        rand.nextDouble() < 0.7 ? 1.0 : 2.5,       // small + few big
+        rand.nextDouble() * 0.8 + 0.2,             // glow intensity
+      ));
+    }
+  }
+
+  void _generateBuildings(
+    List<_Building> list,
+    double minHeight,
+    double maxHeight,
+    Color color,
+    double speed,
+  ) {
+    double x = 0;
+
+    while (x < game.size.x * 2) {
+      final width = 60 + _rand.nextDouble() * 60; // 60–120
+      final height = minHeight + _rand.nextDouble() * (maxHeight - minHeight);
+
+      final windows = _generateWindows(width, height); // <-- new windows per building
+      final litWindows = List<bool>.generate(
+        windows.length,
+        (i) => _rand.nextBool(),
+      );
+
+      // list.add(_Building(
+      //   x: x,
+      //   width: width,
+      //   height: height,
+      //   color: color,
+      //   speed: speed,
+      //   windows: windows,
+      //   litWindows: litWindows,
+      // ));
+
+      list.add(_Building(
+        x: x,
+        width: width,
+        height: height,
+        color: color,
+        speed: speed,
+        windows: windows,
+        litWindows: litWindows,
+      ));
+
+      x += width + 160; // spacing depends on width
+    }
+  }
+  
+  final List<_Mountain> mountains = [];
+
+  void _generateMountains() {
+    mountains.clear();
+    double x = 0;
+    final rand = Random();
+
+    while (x < game.size.x * 2) {
+      double width = 150 + rand.nextDouble() * 100;   // wider for smoother curves
+      double height = 40 + rand.nextDouble() * 80;    // varied height
+      mountains.add(_Mountain(x, width, height, Colors.grey.shade800));
+      x += width * 0.6; // overlap for natural look
+    }
+  }
+
+  @override
+  void update(double dt) {
+    if (!isMoving) return;
+
+    _updateLayer(farBuildings, dt);
+    _updateLayer(midBuildings, dt);
+    _updateLayer(nearBuildings, dt);
+  }
+
+  void _updateLayer(List<_Building> buildings, double dt) {
+    for (final b in buildings) {
+      b.x -= b.speed * 100 * dt;
+    }
+
+    // recycle buildings
+    final first = buildings.first;
+    final last = buildings.last;
+
+    if (first.x + first.width < 0) {
+      first.x = last.x + 160;
+      buildings.removeAt(0);
+      buildings.add(first);
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final size = game.size;
+    final groundHeight = size.y * 0.25;
+    final horizonY = size.y - groundHeight;
+
+    _drawSky(canvas, size);
+    _drawStars(canvas);
+    _drawMoon(canvas);
+    _drawMountains(canvas, horizonY);   // draw mountains before buildings
+    _drawLayer(canvas, farBuildings, horizonY);
+    _drawLayer(canvas, midBuildings, horizonY);
+    _drawLayer(canvas, nearBuildings, horizonY);
+    _drawFog(canvas, game.size);
+  }
+
+  void _drawLayer(Canvas canvas, List<_Building> buildings, double horizonY) {
+    final paint = Paint();
+
+    for (final b in buildings) {
+      paint.color = b.color;
+
+      // Rounded only at top corners
+      final rrect = RRect.fromRectAndCorners(
+        Rect.fromLTWH(b.x, horizonY - b.height, b.width, b.height),
+        topLeft: const Radius.circular(8),
+        topRight: const Radius.circular(8),
+        bottomLeft: Radius.zero,
+        bottomRight: Radius.zero,
+      );
+
+      canvas.drawRRect(rrect, paint);
+
+      // building
+      // canvas.drawRect(
+      //   Rect.fromLTWH(b.x, horizonY - b.height, b.width, b.height),
+      //   paint,
+      // );
+
+      // windows
+      for (int i = 0; i < b.windows.length; i++) {
+        final w = b.windows[i];
+
+        final isLit = b.litWindows[i];
+
+        final windowWidth = 6.0; // slightly bigger
+        final windowHeight = 12.0; // constant height
+
+        paint.color = isLit
+            ? Colors.yellow.withOpacity(0.5 + Random().nextDouble() * 0.5)
+            : Colors.black.withOpacity(0.2);
+
+        canvas.drawRect(
+          Rect.fromLTWH(
+            b.x + w.dx,
+            horizonY - b.height + w.dy,
+            windowWidth,
+            windowHeight,
+          ),
+          paint,
+        );
+      }
+    }
+  }
+
+  void _drawSky(Canvas canvas, Vector2 size) {
+    final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+
+    final gradient = LinearGradient(
+      colors: [Colors.black, Colors.grey.shade900],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+
+    final paint = Paint()..shader = gradient.createShader(rect);
+    canvas.drawRect(rect, paint);
+  }
+
+  void _drawStars(Canvas canvas) {
+    for (final s in stars) {
+      final paint = Paint()
+        ..color = Colors.white.withOpacity(s.glow);
+
+      // glow effect
+      canvas.drawCircle(s.pos, s.size * 2.5, paint..maskFilter = MaskFilter.blur(BlurStyle.normal, 3));
+
+      // core star
+      canvas.drawCircle(s.pos, s.size, Paint()..color = Colors.white.withOpacity(0.9));
+    }
+  }
+
+  void _drawMoon(Canvas canvas) {
+    final center = Offset(650, 100);
+
+    final glowPaint = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
+
+    // glow
+    canvas.drawCircle(center, 60, glowPaint);
+
+    // moon body
+    canvas.drawCircle(
+      center,
+      22,
+      Paint()..color = Colors.grey.shade200,
+    );
+
+    // slight shadow curve
+    canvas.drawCircle(
+      Offset(center.dx + 6, center.dy),
+      22,
+      Paint()..color = Colors.black.withOpacity(0.2),
+    );
+  }
+
+  void _drawMountains(Canvas canvas, double horizonY) {
+    final paint = Paint();
+
+    for (final m in mountains) {
+      paint.color = m.color;
+
+      final path = Path();
+      path.moveTo(m.x, horizonY);
+
+      double midX = m.x + m.width / 2;
+      double midY = horizonY - m.height;
+
+      double endX = m.x + m.width;
+      double endY = horizonY;
+
+      // Bezier curve for smooth mountain
+      path.quadraticBezierTo(midX, midY, endX, endY);
+
+      // Slightly overlap for smoother silhouette
+      path.lineTo(endX, horizonY);
+      path.lineTo(m.x, horizonY);
+      path.close();
+
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  void _drawFog(Canvas canvas, Vector2 size) {
+    final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+
+    final gradient = LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: [
+        Colors.black.withOpacity(0.4), // dense near ground
+        Colors.transparent,
+      ],
+    );
+
+    final paint = Paint()..shader = gradient.createShader(rect);
+
+    canvas.drawRect(rect, paint);
+  }
+}
+
+class _Building {
+  double x;
+  double width;
+  double height;
+  final Color color;
+  final double speed;
+
+  final List<Offset> windows;
+  final List<bool> litWindows;
+
+  _Building({
+    required this.x,
+    required this.width,
+    required this.height,
+    required this.color,
+    required this.speed,
+    required this.windows,
+    required this.litWindows,
+  });
+}
+
+class _Star {
+  final Offset pos;
+  final double size;
+  final double glow;
+
+  _Star(this.pos, this.size, this.glow);
+}
+
+class _Mountain {
+  double x;
+  double width;
+  double height;
+  final Color color;
+  _Mountain(this.x, this.width, this.height, this.color);
+}
