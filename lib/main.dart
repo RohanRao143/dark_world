@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'widgets/game_wrapper.dart';
+import 'screens/loading_game.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: const GameWrapper(),
+      home: const LoadingScreen(),
     );
   }
 }
