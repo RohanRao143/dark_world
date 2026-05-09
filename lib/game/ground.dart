@@ -68,35 +68,40 @@ class Ground extends Component with HasGameReference<MyGame> {
 
     double x = 100;
 
+    GroundProp? lastProp;
+
     while (x < game.size.x * 1.5) {
-      // final isBarrel = rand.nextBool();
       final type = rand.nextInt(3);
 
+      late GroundProp prop;
+
       if (type == 0) {
-        props.add(
-          BarrelProp(
-            x: x,
-            width: 38 + rand.nextDouble() * 14,
-            height: 46 + rand.nextDouble() * 14,
-          ),
+        prop = BarrelProp(
+          x: x,
+          width: 38 + rand.nextDouble() * 14,
+          height: 46 + rand.nextDouble() * 14,
         );
       } else if (type == 1) {
-        props.add(
-          CrateProp(
-            x: x,
-            size: 42 + rand.nextDouble() * 16,
-          ),
+        prop = CrateProp(
+          x: x,
+          size: 42 + rand.nextDouble() * 16,
         );
       } else {
-        props.add(
-          ElectricPoleProp(
-            x: x,
-            height: 140 + rand.nextDouble() * 60,
-          ),
+        prop = ElectricPoleProp(
+          x: x,
+          height: 140 + rand.nextDouble() * 60,
         );
       }
 
+      props.add(prop);
+      lastProp = prop;
+
       x += 180 + rand.nextDouble() * 260;
+    }
+
+    // ✅ Mark final prop as level finish
+    if (lastProp != null) {
+      lastProp.isFinishProp = true;
     }
   }
 

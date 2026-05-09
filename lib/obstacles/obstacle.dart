@@ -43,8 +43,13 @@ abstract class Obstacle extends PositionComponent
 abstract class GroundProp {
   double x;
   double speed;
+  bool isFinishProp = false;
 
   GroundProp(this.x, this.speed);
 
   void render(Canvas canvas, double Function(double x) getTerrainY);
+
+  bool checkCollision(double playerX) {
+    return false;
+  }
 }
