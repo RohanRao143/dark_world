@@ -96,10 +96,13 @@ class Ground extends Component with HasGameReference<MyGame> {
           prop = CrateProp(
             x: x,
             size: 42 + rand.nextDouble() * 16,
+            width: 38 + rand.nextDouble() * 14,
+            height: 46 + rand.nextDouble() * 14,
           );
         } else {
           prop = ElectricPoleProp(
             x: x,
+            width: 5,
             height: 140 + rand.nextDouble() * 60,
           );
         }
@@ -109,6 +112,8 @@ class Ground extends Component with HasGameReference<MyGame> {
         prop = CrateProp(
           x: x,
           size: 40,
+            width: 38 + rand.nextDouble() * 14,
+            height: 46 + rand.nextDouble() * 14,
         );
       }
 

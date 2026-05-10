@@ -8,245 +8,264 @@ import 'obstacle.dart';
 class CrateProp extends GroundProp {
   final double size;
 
+  @override
+  final double width;
+  @override
+  final double height;
+
   CrateProp({
     required double x,
     required this.size,
-    double speed = 120, // default scroll speed
+    required this.width,
+    required this.height,
+    double speed = 120,
   }) : super(x, speed);
-@override
-void render(Canvas canvas, double Function(double) getTerrainY) {
-  final groundY = getTerrainY(x);
 
-  // =====================================================
-  // BIGGER CRATE
-  // =====================================================
+  @override
+  PropCollisionType get collisionType =>
+      PropCollisionType.solid;
 
-  final crateWidth = size * 1.45;
-  final crateHeight = size * 1.15;
+  // CrateProp({
+  //   required double x,
+  //   required this.size,
+  //   double speed = 120, // default scroll speed
+  // }) : super(x, speed);
 
-  final rect = Rect.fromLTWH(
-    x - crateWidth / 2,
-    groundY - crateHeight,
-    crateWidth,
-    crateHeight,
-  );
 
-  // =====================================================
-  // COLORS
-  // =====================================================
+  @override
+  void render(Canvas canvas, double Function(double) getTerrainY) {
+    final groundY = getTerrainY(x);
 
-  const frameColor = Color(0xFF262626);
-  const plankColor = Color(0xFF3D3D3D);
-  const darkLine = Color(0xFF111111);
-  const nailColor = Color(0xFFC2C2C2);
+    // =====================================================
+    // BIGGER CRATE
+    // =====================================================
 
-  // =====================================================
-  // MAIN BODY
-  // =====================================================
+    final crateWidth = size * 1.45;
+    final crateHeight = size * 1.15;
 
-  canvas.drawRect(
-    rect,
-    Paint()..color = frameColor,
-  );
-
-  // =====================================================
-  // INNER PANEL
-  // =====================================================
-
-  const border = 10.0;
-
-  final inner = Rect.fromLTWH(
-    rect.left + border,
-    rect.top + border,
-    rect.width - border * 2,
-    rect.height - border * 2,
-  );
-
-  // =====================================================
-  // PLANKS
-  // =====================================================
-
-  const plankCount = 5;
-  final plankWidth = inner.width / plankCount;
-
-  final random = Random(42);
-
-  for (int i = 0; i < plankCount; i++) {
-    final plankRect = Rect.fromLTWH(
-      inner.left + i * plankWidth,
-      inner.top,
-      plankWidth - 2,
-      inner.height,
+    final rect = Rect.fromLTWH(
+      x - crateWidth / 2,
+      groundY - crateHeight,
+      crateWidth,
+      crateHeight,
     );
 
-    // plank body
+    // =====================================================
+    // COLORS
+    // =====================================================
+
+    const frameColor = Color(0xFF262626);
+    const plankColor = Color(0xFF3D3D3D);
+    const darkLine = Color(0xFF111111);
+    const nailColor = Color(0xFFC2C2C2);
+
+    // =====================================================
+    // MAIN BODY
+    // =====================================================
+
     canvas.drawRect(
-      plankRect,
-      Paint()..color = plankColor,
+      rect,
+      Paint()..color = frameColor,
     );
 
-    // =================================================
-    // RANDOM WOOD DETAILS
-    // =================================================
+    // =====================================================
+    // INNER PANEL
+    // =====================================================
 
-    final scratchPaint = Paint()
-      ..color = Colors.black.withOpacity(0.33)
-      ..strokeWidth = 1.6;
+    const border = 10.0;
 
-    // random vertical cracks
-    final crackCount = 3 + random.nextInt(3);
+    final inner = Rect.fromLTWH(
+      rect.left + border,
+      rect.top + border,
+      rect.width - border * 2,
+      rect.height - border * 2,
+    );
 
-    for (int c = 0; c < crackCount; c++) {
-      final startX =
-          plankRect.left + random.nextDouble() * plankRect.width;
+    // =====================================================
+    // PLANKS
+    // =====================================================
 
-      final startY =
-          plankRect.top + random.nextDouble() * 25;
+    const plankCount = 5;
+    final plankWidth = inner.width / plankCount;
 
-      final segments = 4 + random.nextInt(4);
+    final random = Random(42);
 
-      double currentX = startX;
-      double currentY = startY;
+    for (int i = 0; i < plankCount; i++) {
+      final plankRect = Rect.fromLTWH(
+        inner.left + i * plankWidth,
+        inner.top,
+        plankWidth - 2,
+        inner.height,
+      );
 
-      for (int s = 0; s < segments; s++) {
-        final nextX =
-            currentX + (-2 + random.nextDouble() * 4);
+      // plank body
+      canvas.drawRect(
+        plankRect,
+        Paint()..color = plankColor,
+      );
 
-        final nextY =
-            currentY + 10 + random.nextDouble() * 12;
+      // =================================================
+      // RANDOM WOOD DETAILS
+      // =================================================
+
+      final scratchPaint = Paint()
+        ..color = Colors.black.withOpacity(0.33)
+        ..strokeWidth = 1.6;
+
+      // random vertical cracks
+      final crackCount = 3 + random.nextInt(3);
+
+      for (int c = 0; c < crackCount; c++) {
+        final startX =
+            plankRect.left + random.nextDouble() * plankRect.width;
+
+        final startY =
+            plankRect.top + random.nextDouble() * 25;
+
+        final segments = 4 + random.nextInt(4);
+
+        double currentX = startX;
+        double currentY = startY;
+
+        for (int s = 0; s < segments; s++) {
+          final nextX =
+              currentX + (-2 + random.nextDouble() * 4);
+
+          final nextY =
+              currentY + 10 + random.nextDouble() * 12;
+
+          canvas.drawLine(
+            Offset(currentX, currentY),
+            Offset(nextX, nextY),
+            scratchPaint,
+          );
+
+          currentX = nextX;
+          currentY = nextY;
+
+          if (currentY > plankRect.bottom - 6) break;
+        }
+      }
+
+      // random small wood marks
+      for (int m = 0; m < 5; m++) {
+        final mx =
+            plankRect.left + random.nextDouble() * plankRect.width;
+
+        final my =
+            plankRect.top + random.nextDouble() * plankRect.height;
 
         canvas.drawLine(
-          Offset(currentX, currentY),
-          Offset(nextX, nextY),
+          Offset(mx - 2, my),
+          Offset(mx + 2, my + 1),
           scratchPaint,
         );
+      }
 
-        currentX = nextX;
-        currentY = nextY;
+      // =================================================
+      // GAPS BETWEEN PLANKS
+      // =================================================
 
-        if (currentY > plankRect.bottom - 6) break;
+      if (i != plankCount - 1) {
+        final gapX = plankRect.right + 1;
+
+        canvas.drawLine(
+          Offset(gapX, inner.top),
+          Offset(gapX, inner.bottom),
+          Paint()
+            ..color = darkLine
+            ..strokeWidth = 2.4,
+        );
       }
     }
 
-    // random small wood marks
-    for (int m = 0; m < 5; m++) {
-      final mx =
-          plankRect.left + random.nextDouble() * plankRect.width;
+    // =====================================================
+    // OUTER FRAME
+    // =====================================================
 
-      final my =
-          plankRect.top + random.nextDouble() * plankRect.height;
+    final framePaint = Paint()
+      ..color = frameColor;
 
-      canvas.drawLine(
-        Offset(mx - 2, my),
-        Offset(mx + 2, my + 1),
-        scratchPaint,
-      );
-    }
+    const beam = 10.0;
 
-    // =================================================
-    // GAPS BETWEEN PLANKS
-    // =================================================
+    // top
+    canvas.drawRect(
+      Rect.fromLTWH(rect.left, rect.top, rect.width, beam),
+      framePaint,
+    );
 
-    if (i != plankCount - 1) {
-      final gapX = plankRect.right + 1;
+    // bottom
+    canvas.drawRect(
+      Rect.fromLTWH(rect.left, rect.bottom - beam, rect.width, beam),
+      framePaint,
+    );
 
-      canvas.drawLine(
-        Offset(gapX, inner.top),
-        Offset(gapX, inner.bottom),
-        Paint()
-          ..color = darkLine
-          ..strokeWidth = 2.4,
-      );
-    }
-  }
+    // left
+    canvas.drawRect(
+      Rect.fromLTWH(rect.left, rect.top, beam, rect.height),
+      framePaint,
+    );
 
-  // =====================================================
-  // OUTER FRAME
-  // =====================================================
+    // right
+    canvas.drawRect(
+      Rect.fromLTWH(rect.right - beam, rect.top, beam, rect.height),
+      framePaint,
+    );
 
-  final framePaint = Paint()
-    ..color = frameColor;
+    // =====================================================
+    // FRAME DETAIL LINES
+    // =====================================================
 
-  const beam = 10.0;
+    final frameLine = Paint()
+      ..color = Colors.black.withOpacity(0.5)
+      ..strokeWidth = 2;
 
-  // top
-  canvas.drawRect(
-    Rect.fromLTWH(rect.left, rect.top, rect.width, beam),
-    framePaint,
-  );
+    canvas.drawLine(
+      Offset(rect.left + 8, rect.top + beam),
+      Offset(rect.right - 8, rect.top + beam),
+      frameLine,
+    );
 
-  // bottom
-  canvas.drawRect(
-    Rect.fromLTWH(rect.left, rect.bottom - beam, rect.width, beam),
-    framePaint,
-  );
+    canvas.drawLine(
+      Offset(rect.left + 8, rect.bottom - beam),
+      Offset(rect.right - 8, rect.bottom - beam),
+      frameLine,
+    );
 
-  // left
-  canvas.drawRect(
-    Rect.fromLTWH(rect.left, rect.top, beam, rect.height),
-    framePaint,
-  );
+    // =====================================================
+    // METAL NAILS
+    // =====================================================
 
-  // right
-  canvas.drawRect(
-    Rect.fromLTWH(rect.right - beam, rect.top, beam, rect.height),
-    framePaint,
-  );
+    final nailPaint = Paint()
+      ..color = nailColor;
 
-  // =====================================================
-  // FRAME DETAIL LINES
-  // =====================================================
-
-  final frameLine = Paint()
-    ..color = Colors.black.withOpacity(0.5)
-    ..strokeWidth = 2;
-
-  canvas.drawLine(
-    Offset(rect.left + 8, rect.top + beam),
-    Offset(rect.right - 8, rect.top + beam),
-    frameLine,
-  );
-
-  canvas.drawLine(
-    Offset(rect.left + 8, rect.bottom - beam),
-    Offset(rect.right - 8, rect.bottom - beam),
-    frameLine,
-  );
-
-  // =====================================================
-  // METAL NAILS
-  // =====================================================
-
-  final nailPaint = Paint()
-    ..color = nailColor;
-
-  final nailOutline = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.4
-    ..color = Colors.black;
-
-  final nails = [
-    Offset(rect.left + 7, rect.top + 7),
-    Offset(rect.right - 7, rect.top + 7),
-    Offset(rect.left + 7, rect.bottom - 7),
-    Offset(rect.right - 7, rect.bottom - 7),
-  ];
-
-  for (final nail in nails) {
-    canvas.drawCircle(nail, 4, nailPaint);
-    canvas.drawCircle(nail, 4, nailOutline);
-  }
-
-  // =====================================================
-  // OUTLINE
-  // =====================================================
-
-  canvas.drawRect(
-    rect,
-    Paint()
+    final nailOutline = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..color = Colors.black,
-  );
-}
+      ..strokeWidth = 1.4
+      ..color = Colors.black;
+
+    final nails = [
+      Offset(rect.left + 7, rect.top + 7),
+      Offset(rect.right - 7, rect.top + 7),
+      Offset(rect.left + 7, rect.bottom - 7),
+      Offset(rect.right - 7, rect.bottom - 7),
+    ];
+
+    for (final nail in nails) {
+      canvas.drawCircle(nail, 4, nailPaint);
+      canvas.drawCircle(nail, 4, nailOutline);
+    }
+
+    // =====================================================
+    // OUTLINE
+    // =====================================================
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.2
+        ..color = Colors.black,
+    );
+  }
 }

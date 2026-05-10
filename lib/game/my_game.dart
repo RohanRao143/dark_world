@@ -81,10 +81,6 @@ class MyGame extends FlameGame with TapCallbacks {
 
     if (isGameOver) return;
 
-    // WORLD MOVEMENT
-    background.isMoving = isHolding;
-    ground.isMoving = isHolding;
-
     // COLLISION
     for (final component in children.whereType<Obstacle>()) {
       if (component.collidesWith(player)) {
@@ -94,7 +90,6 @@ class MyGame extends FlameGame with TapCallbacks {
           component.onPlayerCollision(player);
           return;
         }
-
         return;
       }
     }
@@ -102,8 +97,16 @@ class MyGame extends FlameGame with TapCallbacks {
 
     // TODO :: check if the level is completed through lastProp isFinishProp in ground base.
     // LEVEL COMPLETE CHECK
+
+    bool blocked = false;
+    bool standingOnPlatform = false;
+    final groundY = size.y - (size.y * 0.25) - 60;
+
+
     for (final component in children.whereType<Ground>()) {
+
       for (final prop in component.props) {
+
         if (!prop.isFinishProp) continue;
 
         final propWorldX = prop.x + component.groundOffset;
@@ -114,7 +117,62 @@ class MyGame extends FlameGame with TapCallbacks {
           return;
         }
       }
+
+      for (final prop in component.props) {
+
+        if (prop.collisionType == PropCollisionType.none) {
+          continue;
+        }
+
+        final rect = prop.collisionRect(
+          ground.groundOffset,
+          size.y - (size.y * 0.25),
+        );
+
+        final playerRect = player.hitbox;
+        if (!playerRect.overlaps(rect)) {
+          // blocked = true;
+          // break;
+          continue;
+        }
+
+        
+        final playerBottom = playerRect.bottom;
+        final playerTop = playerRect.top;
+
+        final previousBottom =
+            playerBottom - player.velocityY * dt;
+
+        // LANDING ON TOP
+        final landing =
+            previousBottom <= rect.top &&
+            playerBottom >= rect.top;
+
+        if (landing) {
+          player.position.y = rect.top - 60;
+          player.velocityY = 0;
+
+          standingOnPlatform = true;
+          continue;
+        }
+
+        // SIDE BLOCK
+        final sideHit =
+            playerBottom > rect.top + 10;
+
+        if (sideHit) {
+          blocked = true;
+        }
+      }
     }
+
+    if (!standingOnPlatform && player.position.y < groundY) {
+    // gravity naturally pulls him down
+    }
+
+    // WORLD MOVEMENT
+    background.isMoving = isHolding && !blocked;
+    ground.isMoving = isHolding && !blocked;
   }
 
   void _completeLevel() {

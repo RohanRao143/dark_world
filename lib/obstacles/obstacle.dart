@@ -39,17 +39,42 @@ abstract class Obstacle extends PositionComponent
   void onPlayerCollision(Player player);
 }
 
+enum PropCollisionType {
+  none,
+  solid,
+}
+
 
 abstract class GroundProp {
   double x;
   double speed;
   bool isFinishProp = false;
 
-  GroundProp(this.x, this.speed);
+  double get width;
+  double get height;
+
+  GroundProp(
+    this.x,
+    this.speed
+  );
+
+  PropCollisionType get collisionType;
 
   void render(Canvas canvas, double Function(double x) getTerrainY);
 
   bool checkCollision(double playerX) {
     return false;
+  }
+
+  Rect collisionRect(
+    double groundOffset,
+    double groundY,
+  ) {
+    return Rect.fromLTWH(
+      x + groundOffset,
+      groundY - height,
+      width,
+      height,
+    );
   }
 }

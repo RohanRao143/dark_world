@@ -3,13 +3,22 @@ import 'package:flutter/material.dart';
 import 'obstacle.dart';
 
 class ElectricPoleProp extends GroundProp {
+  @override
+  final double width;
+  @override
   final double height;
 
   ElectricPoleProp({
     required double x,
+    required this.width,
     required this.height,
     double speed = 120, // default scroll speed
   }) : super(x, speed);
+
+  @override
+  PropCollisionType get collisionType =>
+      PropCollisionType.none;
+
 @override
 void render(Canvas canvas, double Function(double) getTerrainY) {
   final groundY = getTerrainY(x);

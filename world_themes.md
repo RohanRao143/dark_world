@@ -1,3 +1,16 @@
+WorldTheme
+   ↓
+ThemeConfig
+   ├── sky colors
+   ├── ground colors
+   ├── props
+   ├── ambient particles
+   ├── fog style
+   ├── music
+   ├── obstacles
+   └── lighting
+
+
 A Limbo-style world works best when every level has:
 
 * a strong visual identity,

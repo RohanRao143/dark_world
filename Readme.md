@@ -4,8 +4,7 @@ flutter pub get
 
 flutter run
 
-
- git config user.name "RohanRao143"
+git config user.name "RohanRao143"
 
 git config user.email "krishna.rohan.krishna@gmail.com"
 

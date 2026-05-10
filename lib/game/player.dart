@@ -59,6 +59,22 @@ class Player extends PositionComponent with HasGameReference<MyGame> {
   // slide
   double slideOffset = 0;
 
+  double velocityY = 0;
+
+  bool isOnPlatform = false;
+
+  // final double gravity = 900;
+  
+  Rect get hitbox => Rect.fromLTWH(
+    position.x,
+    position.y,
+    50,
+    60,
+  );
+
+  double get bottom => position.y + 60;
+  double get top => position.y;
+
   @override
   Future<void> onLoad() async {
     final groundHeight = game.size.y * 0.25;
@@ -186,6 +202,8 @@ class Player extends PositionComponent with HasGameReference<MyGame> {
       position.y = groundY;
 
       velocity.y = 0;
+      isOnPlatform = false;
+
 
       if (!isGrounded) {
         isGrounded = true;

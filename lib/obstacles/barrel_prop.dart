@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import './obstacle.dart';
 
 class BarrelProp extends GroundProp {
+  @override
   final double width;
+  
+  @override
   final double height;
 
   BarrelProp({
@@ -13,6 +16,10 @@ class BarrelProp extends GroundProp {
     required this.height,
     double speed = 120,
   }) : super(x, speed);
+
+  @override
+  PropCollisionType get collisionType =>
+      PropCollisionType.solid;
 
   // =========================================================
   // STATIC RANDOM DATA
